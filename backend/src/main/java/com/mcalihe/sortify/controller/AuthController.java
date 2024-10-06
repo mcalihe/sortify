@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("auth")
-public class AuthController {
+public final class AuthController {
     private final SpotifyAuthService spotifyAuthService;
 
     public AuthController(final SpotifyAuthService spotifyAuthService) {
