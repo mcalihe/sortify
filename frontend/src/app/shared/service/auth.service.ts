@@ -33,7 +33,7 @@ export interface AccessTokenResponse {
 export class AuthService {
     private authConfig = inject(AUTH_CONFIG);
 
-    public getToken(code: string) {
+    public getToken() {
         return localStorage.getItem('access_token');
     }
 
@@ -125,8 +125,7 @@ export class AuthService {
         };
 
         const body = await fetch(this.authConfig.tokenEndpoint, payload);
-        const response = (await body.json()) as AccessTokenResponse;
-        return response;
+        return (await body.json()) as AccessTokenResponse;
     }
 
     private async requestTokenWithRefreshToken(refreshToken: string) {
