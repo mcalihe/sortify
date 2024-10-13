@@ -1,1 +1,4 @@
 <p>playlist-sorting works!</p>
+@for (playlist of playlists$ | async; track playlist.id) {
+    <p>{{ playlist.name }}</p>
+}

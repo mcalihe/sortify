@@ -6,12 +6,13 @@ import {
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import {
     AuthConfig,
     AuthConfigService,
 } from './shared/service/auth-config.service';
+import { authHeaderInterceptor } from './shared/interceptors/auth-header.interceptor';
 
 export const AUTH_CONFIG = new InjectionToken<AuthConfig>('AuthConfig');
 
@@ -22,7 +23,7 @@ function appLoadFactory(authConfigService: AuthConfigService) {
 export const appConfig: ApplicationConfig = {
     providers: [
         provideRouter(routes),
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([authHeaderInterceptor])),
         {
             provide: APP_INITIALIZER,
             useFactory: appLoadFactory,
