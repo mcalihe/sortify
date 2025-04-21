@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { AUTH_CONFIG } from '../../app.config';
+import { AuthConfigService } from './auth-config.service';
 
 const generateRandomString = (length: number) => {
     const possible =
@@ -31,27 +31,28 @@ export interface AccessTokenResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-    private authConfig = inject(AUTH_CONFIG);
+    private authConfigService = inject(AuthConfigService);
 
     public getToken() {
         return localStorage.getItem('access_token');
     }
 
     public async login() {
-        console.log(this.authConfig);
+        const authConfig = await this.authConfigService.getConfigAsync();
+        console.log(authConfig);
 
         const codeVerifier = this.getCodeVerifier();
         const hashed = await sha256(codeVerifier);
         const codeChallenge = base64encode(hashed);
-        const authUrl = new URL(this.authConfig.loginUrl);
+        const authUrl = new URL(authConfig.loginUrl);
 
         const params = {
             response_type: 'code',
-            client_id: this.authConfig.clientId,
-            scope: this.authConfig.scopes,
+            client_id: authConfig.clientId,
+            scope: authConfig.scopes,
             code_challenge_method: 'S256',
             code_challenge: codeChallenge,
-            redirect_uri: this.authConfig.redirectUrl,
+            redirect_uri: authConfig.redirectUrl,
         };
 
         authUrl.search = new URLSearchParams(params).toString();
@@ -73,6 +74,18 @@ export class AuthService {
         if (code) {
             const authResponse = await this.requestAccessToken(code);
             this.setAuthStorage(authResponse);
+
+            // Remove code param from URL
+            const url = new URL(window.location.href);
+            url.searchParams.delete('code');
+            window.history.replaceState(
+                {},
+                document.title,
+                url.pathname + url.search,
+            );
+
+            console.log(url.pathname + url.search);
+
             return true;
         }
 
@@ -108,6 +121,7 @@ export class AuthService {
     private async requestAccessToken(
         code: string,
     ): Promise<AccessTokenResponse> {
+        const authConfig = await this.authConfigService.getConfigAsync();
         const codeVerifier = this.getCodeVerifier();
 
         const payload = {
@@ -116,19 +130,20 @@ export class AuthService {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                client_id: this.authConfig.clientId,
+                client_id: authConfig.clientId,
                 grant_type: 'authorization_code',
                 code: code,
-                redirect_uri: this.authConfig.redirectUrl,
+                redirect_uri: authConfig.redirectUrl,
                 code_verifier: codeVerifier,
             }),
         };
 
-        const body = await fetch(this.authConfig.tokenEndpoint, payload);
+        const body = await fetch(authConfig.tokenEndpoint, payload);
         return (await body.json()) as AccessTokenResponse;
     }
 
     private async requestTokenWithRefreshToken(refreshToken: string) {
+        const authConfig = await this.authConfigService.getConfigAsync();
         const payload = {
             method: 'POST',
             headers: {
@@ -137,10 +152,10 @@ export class AuthService {
             body: new URLSearchParams({
                 grant_type: 'refresh_token',
                 refresh_token: refreshToken,
-                client_id: this.authConfig.clientId,
+                client_id: authConfig.clientId,
             }),
         };
-        const body = await fetch(this.authConfig.tokenEndpoint, payload);
+        const body = await fetch(authConfig.tokenEndpoint, payload);
         const response = (await body.json()) as AccessTokenResponse;
         this.setAuthStorage(response);
 
